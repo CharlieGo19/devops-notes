@@ -434,7 +434,7 @@
 
 ![docker tree output of bind-mount dir][dockerTreeOutputLocalRegistry]
 
-## Kubernetes (K8's, Kube)
+## Kubernetes (K8s, Kube)
 
     Kubernetes like swarm is an orchestration tool and has become the most popular in the industry. It runs as a set
     of APIs within the containers and provides API/CLI tools to manage your containers across your servers. Vendors,
@@ -443,12 +443,12 @@
     Note: Kubernetes is more complex than swarm.
     Note: For learning we're using MicroK8s by Canonical.
 
-## Basic Components of K8's
+## Basic Components of K8s
 
     kubectl:
-        CLI to configure K8's and manage apps.
+        CLI to configure K8s and manage apps.
     Node: 
-        A single server in the K8's cluster. A node will at a minimum have a Kubelet and a Kubelet-proxy to handle
+        A single server in the K8s cluster. A node will at a minimum have a Kubelet and a Kubelet-proxy to handle
         the networking.
     Control Plane:
         Consists of 1 or more managers (an odd number for fault tolerance) that manages the cluster. These managers
@@ -465,10 +465,10 @@
 
     Pod:
         One or more containers running together on one node, this is the basic unit of deployment. Containers are
-        always in pods.
+        always in pods. Pods share an IP Addresses and deployment mechanism.
     Controller:
         For creating or updating pods and other objects, you wouldn't normally deploy a pod directly, but have a 
-        controller that validates that K8's is doing what you told it to do. There are many types of controllers
+        controller that validates that K8s is doing what you told it to do. There are many types of controllers
         such as Deployment, ReplicaSet, StatefulSet, DaemonSet, Job, CronJob etc.
     Service:
         A network endpoint given to a set of pods, a persistent endpoint in the cluster so we can access the pods at
@@ -478,6 +478,9 @@
 
     There's many topics that will probably be out of the scope of these notes and will be included in the Kubernetes
     course such as: Secrets, ConfigMaps etc.
+
+    Note: Remember, you can not directly deploy containers with K8s - you create pods, then the kubelet tells the 
+    container runtime to create the containers for you.
 
 ## Adding ***[command]*** kubectl to your terminal
 
@@ -494,6 +497,45 @@
 
 ![Add kubectl alias to bashrc_alias file][microK8sAddKubectlAlias]
 
+## ***[command]*** kubectl run $name$ $args --image $image
+
+    The run command requires at a minimum a name and the image that you would like to run, for example:
+
+          kubectl run nginx-pod --image nginx:1.26.0
+
+    Note: you do not need to explicitly define the version of the image you'd like if your requirement requires the
+    latest image. Which if is the case, you can omit the version, i.e. --image nginx. However, it's good practice to
+    always define a version, because using the latest without review can lead to instability in your 
+    service/application.
+
+## ***[command]*** kubectl get $arg
+
+    The get command will display the resources requested as defined by the $arg flag. For example, the all arg will
+    return the most common resources that you're most likely to need, i.e. pods, services.
+
+![kubernetes get example][k8sGetExample]
+
+## ***[command]*** kubectl create deployment $name$ --image $image
+
+    It's rare you will create a pod directly, most likely you'd create a pod for testing something. Normally you
+    would use the deployment command. This manages pod creation and exists to achieve high availability (the 5 9s).
+    When you issue a deployment command in the control plane the following happens:
+
+        - You request a deployment via the API and it stores that record in the etcd database.
+        - The controller manager will monitor the database and when it notices a new deployment resource which will
+          then create a ReplicaSet.
+        - The ReplicaSet controller will then create records of pods adding them to the etcd database.
+        - The scheduler will then assign these to a node to be deployed which would be picked up by the kubelet 
+          which will then tell the runtime to create the containers.
+
+    Note: For a period of time, there may exist two versions of your resource, this is why deployment exists and how
+    the high availability is achieved.
+
+## ***[command]*** kubectl scale $resource(/ || [space])$name$ --replicas $n
+
+    This command will scale up or down the number of replicas defined by $n
+
+
 [dockerContainerTop]: ./images/docker-container-top.png
 [dockerContainerStats]: ./images/docker-container-stats.png
 [dockerContainerRm]: ./images/docker-container-rm.png
@@ -509,3 +551,4 @@
 [dockerPushToLocalRegistry]: ./images/docker-retag-push-local-repo.png
 [dockerTreeOutputLocalRegistry]: ./images/docker-local-registry-tree.png
 [microK8sAddKubectlAlias]: ./images/microk8s-add-kubectl-alias.png
+[k8sGetExample]: ./images/k8s-get-command.png
