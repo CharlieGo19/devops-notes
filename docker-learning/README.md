@@ -479,6 +479,21 @@
     There's many topics that will probably be out of the scope of these notes and will be included in the Kubernetes
     course such as: Secrets, ConfigMaps etc.
 
+## Adding ***[command]*** kubectl to your terminal
+
+    Because we're using microk8's, the kubectl isn't there by default, you access it via: 
+
+        microk8s.kubectl $args
+
+    So for convenience we're going to add it via an alias. If you run the command:
+
+        cat ~/.bachrc
+
+    You'll see there is a section on aliases, as we should avoid editing this file directly where possible, we will
+    create an alias file and put our alias there.
+
+![Add kubectl alias to bashrc_alias file][microK8sAddKubectlAlias]
+
 [dockerContainerTop]: ./images/docker-container-top.png
 [dockerContainerStats]: ./images/docker-container-stats.png
 [dockerContainerRm]: ./images/docker-container-rm.png
@@ -493,3 +508,4 @@
 [dockerLocalRegistryStart]: ./images/docker-local-registry-start.png
 [dockerPushToLocalRegistry]: ./images/docker-retag-push-local-repo.png
 [dockerTreeOutputLocalRegistry]: ./images/docker-local-registry-tree.png
+[microK8sAddKubectlAlias]: ./images/microk8s-add-kubectl-alias.png

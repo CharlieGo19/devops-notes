@@ -4,8 +4,10 @@
         "editorRuler.foreground": "#ff00ff55"
     },
     "cSpell.words": [
+        "bachrc",
         "IPVS",
         "Kubelet",
+        "microk",
         "mountpath",
         "mysqltesting"
     ]
