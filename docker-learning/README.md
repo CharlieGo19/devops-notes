@@ -497,7 +497,7 @@
 
 ![Add kubectl alias to bashrc_alias file][microK8sAddKubectlAlias]
 
-## ***[command]*** kubectl run $name$ $args --image $image
+## ***[command]*** kubectl run $name $args --image $image
 
     The run command requires at a minimum a name and the image that you would like to run, for example:
 
@@ -531,10 +531,48 @@
     Note: For a period of time, there may exist two versions of your resource, this is why deployment exists and how
     the high availability is achieved.
 
-## ***[command]*** kubectl scale $resource(/ || [space])$name$ --replicas $n
+## ***[command]*** kubectl get $resource $name --output wide
+
+    The --output flag can give us a variety of formats with different levels of information, the wide flag provides
+    a small amount more than without; the key information is the selector. Labels and selectors allow one resource
+    to find its other resources - i.e. if a deployment creates a ReplicaSet, how does it know which ReplicaSet knows
+    which ReplicaSets it's own? This is a function of labels and selectors.
+
+    Note: the get endpoint can return a lot of resources, check kubectl api-resources to see what resources are
+    available to you.
+
+## ***[command]*** kubectl get $resource $name --output yaml
+
+    This --output will give detailed information, i.e. metadata, spec, status, selectors, labels, IPs and more.
+
+## ***[command]*** kubectl get $resource --watch
+
+    This is similar to the linux command, watch. Any state changes made to the resource will be shown in realtime in
+    you CLI.
+
+## ***[command]*** kubectl get events --watch-only
+
+    This will show events happening in the cluster after the point you issued the watch command.
+
+## ***[command]*** kubectl describe $resource $name
+
+    Will give a structured, detailed output of the details associated with the resource requested. You'll get
+    different information based on the resource requested.
+
+## ***[command]*** kubectl logs deployment $name
+
+    This will get the container's logs, but it will pick a random replica and the first container only.
+
+    Note: you can add the flags --follow --tail 1 to follow new log entries that start with the last entry.
+    Note: the log command technically only gives you logs from the containers, i.e. your app.
+
+## ***[command]*** kubectl logs --selector $label
+
+    This will enable you to get the logs for multiple pods.
+
+## ***[command]*** kubectl scale $resource_type(/ | [space])$resource_name --replicas $n
 
     This command will scale up or down the number of replicas defined by $n
-
 
 [dockerContainerTop]: ./images/docker-container-top.png
 [dockerContainerStats]: ./images/docker-container-stats.png
