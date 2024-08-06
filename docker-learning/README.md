@@ -658,7 +658,8 @@ status:
            input and the current live configuration.
 
     Using yaml along with a version control tool, like git, can enable a more robust system for automation,
-    collaboration and deployment. By storing them in a git repository, we can track changes, have better consistency across different environments (using your companies design guidelines) and most important of all, it makes it
+    collaboration and deployment. By storing them in a git repository, we can track changes, have better consistency
+    across different environments (using your companies design guidelines) and most important of all, it makes it 
     easier to roll a bad deployment back. This kind of design philosophy and implementation is the basis for GitOps. 
 
 
