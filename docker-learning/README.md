@@ -515,7 +515,7 @@
 
 ![kubernetes get example][k8sGetExample]
 
-## ***[command]*** kubectl create deployment $name$ --image $image
+## ***[command]*** kubectl create deployment $name --image $image
 
     It's rare you will create a pod directly, most likely you'd create a pod for testing something. Normally you
     would use the deployment command. This manages pod creation and exists to achieve high availability (the 5 9s).
@@ -572,7 +572,96 @@
 
 ## ***[command]*** kubectl scale $resource_type(/ | [space])$resource_name --replicas $n
 
-    This command will scale up or down the number of replicas defined by $n
+    This command will scale up or down the number of replicas defined by $n.
+
+## Exposing Containers
+
+## ***[command]*** kubectl expose $resource_type(/ | [space])$resource_name
+
+    kubectl expose creates a service for existing pod(s), the service will provide a stable address for the pod(s).
+    If we want to connect to pod(s) we need a service. Services can be resolved by name due to CoreDNS.
+
+    There are different types of services:
+
+        - ClusterIP
+            Provides stable internal (to the cluster) IP Address - allowing pod(s) to talk to each other.
+        - NodePort
+            Exposes an application on a static port on each node within the cluster.
+        - LoadBalancer
+            Distributes traffic across the nodes within the cluster, load balancing and routing to backend pods.
+            The LB assigns a public IP address or domain name allowing external client access to the application.
+            Note: under the hood, LB uses NodePort to assign the static ports.
+        - External Name
+            Maps a service to an external DNS name, for pod(s) to access external resources using a stable DNS name.
+            This is achieved by returning a CNAME record that resolves to the specified DNS address - facilitating
+            integration without exposing the K8's service itself.
+
+    Note: you can define a --port and --target-port, both optional, however if --port is not defined then the
+    exposed port will be used, and --target-port will have a random high-port within the configured range assigned.
+
+![kubernetes expose nginx deployment][k8sExposeNginxExample]
+
+    In the above example, we have a simple nginx deployment, and to access the deployment from our machine we can 
+    expose it using a LoadBalancer. If you observe the PORT(S) column we can see it's reachable on 32091.
+
+## Declarative Yaml
+
+    Typing commands sequentially at the CLI is easy for us to understand but hard to automate. The commands are good
+    if we're working locally and start with a fresh install - however in production and more mature systems typing
+    the commands at the CLI is impractical. Using a more declarative approach ensures that our system and its
+    configuration is reproducible. Therefore, we can use yaml file(s) to declare what state we would like our system 
+    to reflect.
+
+## ***[command]*** kubectl $action $resource $args --dry-run=client --output 
+
+    These additional flags will do two things:
+
+        1. --dry-run=client will only show us the output of the command we specify, it will not apply any of the
+           changes stated.
+        2. --output yaml will give us a generator for the command and resource we specify. It will show us how the
+           arguments we provided are applied and what defaults k8's applied.
+
+    example: 
+
+        kubectl expose deployment nginx-test-1 --port 80 --dry-run client --output yaml
+
+    output:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: nginx-test-1
+  name: nginx-test-1
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: nginx-test-1
+status:
+  loadBalancer: {}
+```
+
+## Management with Yaml
+
+    There are two ways we can use yaml with K8's.
+
+        1. We can use the commands, i.e. create, replace, delete... with the --filename=[], where the filename is
+           the yaml file name with your specs in, and it will apply those.
+        2. We can fully declare our system and simply use the apply --filename=[] which can be a yaml file or a
+           directory of yaml files. This is easiest for automation, but can be hard to understand predict changes -
+           we can use git style diff (kubectl diff --filename=[]) to show us changes in configuration between the
+           input and the current live configuration.
+
+    Using yaml along with a version control tool, like git, can enable a more robust system for automation,
+    collaboration and deployment. By storing them in a git repository, we can track changes, have better consistency across different environments (using your companies design guidelines) and most important of all, it makes it
+    easier to roll a bad deployment back. This kind of design philosophy and implementation is the basis for GitOps. 
+
+
 
 [dockerContainerTop]: ./images/docker-container-top.png
 [dockerContainerStats]: ./images/docker-container-stats.png
@@ -590,3 +679,4 @@
 [dockerTreeOutputLocalRegistry]: ./images/docker-local-registry-tree.png
 [microK8sAddKubectlAlias]: ./images/microk8s-add-kubectl-alias.png
 [k8sGetExample]: ./images/k8s-get-command.png
+[k8sExposeNginxExample]: ./images/k8s-nginx-with-loadbalance.png
