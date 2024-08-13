@@ -648,7 +648,7 @@ status:
 
 ## Management with Yaml
 
-    There are two ways we can use yaml with K8's.
+    There are two ways we can use yaml with K8's:
 
         1. We can use the commands, i.e. create, replace, delete... with the --filename=[], where the filename is
            the yaml file name with your specs in, and it will apply those.
