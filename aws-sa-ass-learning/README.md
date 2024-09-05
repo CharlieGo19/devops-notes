@@ -104,7 +104,7 @@
 
 ## IAM (Identity Access Management)
 
-    IAM is a globally resistent service that's used for managing operational user access rights to the services
+    IAM is a globally resilient service that's used for managing operational user access rights to the services
     associated with your AWS Account. Every AWS account has its own dedicated instance of IAM, and the database
     linked to this instance is secured across ALL AWS regions. Therefore, there is full trust between your AWS
     account and your IAM service.
@@ -267,6 +267,13 @@
         can check the content of the ~/.aws folder to see if the configuration details are correct.
 
 ![Configuring Profile of IAM User for AWS CLI][awsConfigureProfileCLI]
+
+## IAM Users
+
+    There is a hard limit of 5,000 IAM Users per AWS account and each IAM User can be a member of 10 or less groups.
+    Therefore IAM Users may not be a viable solution for you if you have internet-scale applications or you're part
+    of a large organisation. For use cases that require a higher user count, consider IAM Roles and Identity 
+    Federation.
 
 ## Public vs Private Services
 
@@ -600,6 +607,185 @@
         You can set a value (in seconds) on a DNS record, this is how long your DNS records are cached (a non
         authoritative answer) for on the resolver server. This can be a pain point if ever you're changing DNS 
         records.
+
+## ARN (Amazon Resource Name)
+
+    ARNs uniquely identify resources within any AWS accounts, ARNs are used in IAM policies which are attached to
+    identities like IAM users, the defined format is:
+
+    arn:partition:service:region:account-id:resource-id
+    arn:partition:service:region:account-id:resource-type/resource-id
+    arn:partition:service:region:account-id:resource-type:resource-id
+
+        Example 1: arn:aws:s3:::romcoms
+        Example 2: arn:aws:s3:::romcoms/*
+
+    The two examples refer to an S3 bucket, because bucket names are globally unique, the region and account-id do
+    not need to be defined, so it's important to note that different services will have different looking ARNs. The
+    examples also look very similar, however, their distinction has a fundamental effect. The two ARNs have no
+    overlap, the first one refers to the bucket, the second one refers to the objects in the bucket. Some actions
+    will work on buckets, some will work on objects, so you will need to specify the appropriate ARN in you policy.
+
+    
+## IAM Identity Policies
+
+    IAM Identity Policies is a set of security statements for the relationship between IAM Users and AWS Resources. 
+    An IAM Policy Document is one or more statements written in JSON. A statement requires at a minimum the 
+    following fields:
+
+        Sid (Statement ID):
+            Informational to explain what the statement is doing, concisely.
+
+        Effect:
+            The intended response and effect you desire given some IAM users request.
+        
+        Action:
+            A list of one or more actions you want to affect.
+            Format: {service}:{[a list of operations]|wildcard}
+        
+        Resource:
+            A list of resources you want to affect:
+            Format: Follows IAM Amazon Resource Names 
+
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Sid": "FullAccess",
+                    "Effect": "Allow",
+                    "Action": ["s3:*"]
+                    "Resource": ["*"]
+                },
+                {
+                    "Sid": "DenyRomComBucket",
+                    "Effect": "Deny",
+                    "Action": ["s3:*"]
+                    "Resource": ["arn:aws:s3:::romcoms", "arn:aws:s3:::romcoms/*"]
+                }
+            ]
+        }
+
+    There will be times when there's multiple policies applied which leads to an overlap of statements where there
+     will be conflicts of access to resources, if this is the case there is an order in which they're applied:
+
+        1. Explicit Denys always take precedence.
+        2. Explicit Allow, this takes effect unless there's an explicit deny.
+        3. Implicit Deny, if there's no explicit allow, then an implicit deny is applied.
+
+    There are two main types of IAM Policies:
+
+        1. Inline policies: Individual policy applied to a specific account. 
+        2. Managed policies: A policy that can be applied to multiple accounts.
+    
+    Managed policies should always be the default choice, as you can change permissions across more people safely.
+    It has less overhead as you only need to make changes in one location rather than multiple and is more secure
+    as there's less scope for human error in giving wrong permissions to an individual.
+
+    Note: Every interaction you have with AWS will have two main components, the resource and the action to be
+    performed on that resource. A statement only applies in AWS if the action you're performing matches the Action 
+    and the Resource.
+
+## IAM Groups
+
+    IAM Groups are containers for IAM users, they're solely for organising users and making management of the users 
+    easier. you can not login to a group, and they have no credentials. When a user is a member of multiple groups,
+    and those groups have IAM policies (inline and managed) associated with them, AWS will create a set of those 
+    policies and use the permissions when evaluating access rights.
+
+    IAM Policies can be attached to resources, it's worth noting that IAM Groups are not a true identity, they can't
+    be referenced as a principal in a policy, therefore a resource can not grant access to a group; it can grant
+    access to individual users and roles, but not a group.
+
+    Note: A principle is a person, application, device or process that wants to authenticate with AWS.
+    Note: Unless you define one, there is no universal group containing all users associated with the AWS account.
+    Note: There is a soft limit of 300 Groups per account, which can be increased via support ticket.
+
+## IAM Roles
+
+    IAM Roles are an entity that sits within an AWS account. Where a single principle uses an IAM User, an IAM Role
+    can have multiple or an unknown number of (internal or external) principles. Due to the 5,000 IAM User limit 
+    imposed upon an AWS account, IAM Roles are a perfect fit to scale beyond this limit due to it's ability to
+    interact with users external to AWS i.e. Windows Active Directory, this is known as Federated Authentication.
+    When a user assumes an IAM Role, that user becomes that role and inherits the permissions that comes with it.
+    IAM Roles should be specific in scope and temporary, although a Unix root user is persistent, you could think
+    of it as using the root user, you assume those elevated privileges for a very specific task that (should be) 
+    is finite/short lived in duration.
+
+    IAM Roles differ from IAM Users with regards to what policies can be attached, i.e. IAM Users can only have
+    permission policies attached (inline or managed). However, IAM Roles have another type of policy, a trust 
+    policy. A trust policy controls which identities can assume the role, a trust policy can reference identities 
+    within the same AWS account, i.e. IAM Users, other roles or AWS services; it can also reference identities from
+    external AWS account, external identities and even allows for anonymous usage of the role.
+
+    When an identity assumes a role, it is given a temporary security credentials, whenever an identity uses the 
+    temporary credentials are used, the credentials are checked against the permissions policy associated with that
+    IAM Role, so if the permissions change, it will be reflected when the credentials are checked again, against 
+    the permissions policy.
+
+    Note: IAM Roles can be referenced in resource policies.
+
+## Use Cases for IAM Roles
+
+    For AWS Services:
+        Services like AWS Lambda, you have asked Lambda to start and stop services or process real-time data. For it
+        to fulfil it's function it requires permissions (as with most things in AWS, services start permissionless).
+        AWS Lambda is not an identity, it's a component of a service, therefore we will need to give it access keys
+        in order for it to function. Hard coding access keys is a security risk, therefore creating a Lambda 
+        Execution Role is a perfect use case.
+
+        In a typical scenario, a trust and permissions policy grants the Lambda Execution Role the necessary 
+        permissions to access services like S3 and CloudWatch. When the Lambda function is invoked, STS (Secure 
+        Token Service) provides a temporary set of security credentials, allowing the function’s runtime to interact
+        with the required services during execution.
+                                                                             +-------------+
+                            Lambda Execution Role <---------------------+    |    Trust    |
+                           +-------------------------------+            |    |    Policy   |    
+                           |           AWS Lambda          |            |    +-------------+   
+                           +-------------------------------+            +----+       
+                                          | Lambda trusted and               +-------------+
+                                          | permissions validate             |  Permission |
+                                          | authorisation.                   |    Policy   |
+                                          v                                  +-------------+
+                                   +------------+
+                                   |     STS    |              +------------------+
+                                   +------------+              |        S3        | 
+                                          |  sts:AssumeRole    +------------------+
+                                          +-------------------> 
+                                                               +-------------------+
+                                                               |     CloudWatch    | 
+                                                               +-------------------+
+
+        Note: Because there can be many Lambda Functions running in parallel, this would be an unknown quantity,
+        therefore again showing that IAM Roles is a perfect fit for this use case.
+
+    Emergency Access:
+        Consider a support team, where 99% of the time, read only access is required. On a Sunday morning at 04:00
+        a urgent support request comes in, and the technical team is out of office and an EC2 instance needs
+        terminating and recreating. We can allow a member of the support team additional access for a short time, 
+        using IAM Roles that would grant them the permissions to restart the EC2 instance. This is known as a break
+        glass event, i.e. it's an action with an intent. There is a complete auditable log that can show who the 
+        access was granted to and when.
+
+    Integrating AWS into an Existing Corporate System:
+        Most corporations will have their own single sign-on implementation and will most likely exceed the 5,000
+        identities. Because external identities can't directly interact with AWS Services, using an AWS Role to give
+        an external identity permission to interact with AWS Services is also a good use case, this is known as
+        ID Federation.
+
+## Service-linked Roles
+
+    Service-linked roles are linked to a specific AWS Service, they're predefined by the service and the provide the
+    permissions that the service needs to interact with other AWS Service on your behalf. The Service-linked Roles
+    also form part of AWS Security architecture, let's say you have a team member that should not directly have the
+    ability to interact with a service, you can give that team member the PassRole permission, The PassRole 
+    permission lets users allow services to assume roles without granting them full access.
+
+    Note: You can't delete the role until it's no longer required.
+
+## AWS Organisations
+
+    AWS Organisations is a product that allows large organisations to manage multiple AWS accounts in a cost
+    effective way with minimal management overhead. If AWS Organisations existed
 
 [awsLocateSecurityCredentials]: ./images/aws-security-credentials.png
 [awsAddMFA]: ./images/aws-add-mfa.png
