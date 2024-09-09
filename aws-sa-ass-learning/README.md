@@ -8,14 +8,14 @@
         2. A unique email.
         3. A payment card.
 
-    When you create an AWS account, the email provided is used to create an 'account root user', this is the only
+    When you create an AWS Account, the email provided is used to create an 'account root user', this is the only
     account to exist out of the box and has root privileges, i.e. it can perform every and any task. This account
     cannot be deleted. It's bad practice to do administration tasks from root user, therefore you should create an 
     IAM User (Identity and Access Management) with the exact permissions required to fulfil the respective
     tasks. The payment card provided is the account payment method, so any resources consumed that are
     billable will be charged to this payment card.
 
-    Note: its not uncommon to have multiple AWS accounts for mid to complex projects.
+    Note: its not uncommon to have multiple AWS Accounts for mid to complex projects.
     Note: Cross account permissions are achievable (excluding account root user), which will be documented later.
     Note: It is possible for learning to create multiple aliases from one email address, i.e. on apple I use
     'hide my email', a gmail account you can do $yourEmail+$someString@gmail.com where, $someString is a random
@@ -24,7 +24,7 @@
 
 ## Enable MFA
 
-    You should try to always add some form of MFA to your AWS account once created. There are several factors that
+    You should try to always add some form of MFA to your AWS Account once created. There are several factors that
     can help improve the security of your account(s):
 
         1. Knowledge: Something you know, i.e. username & password.
@@ -105,7 +105,7 @@
 ## IAM (Identity Access Management)
 
     IAM is a globally resilient service that's used for managing operational user access rights to the services
-    associated with your AWS Account. Every AWS account has its own dedicated instance of IAM, and the database
+    associated with your AWS Account. Every AWS Account has its own dedicated instance of IAM, and the database
     linked to this instance is secured across ALL AWS regions. Therefore, there is full trust between your AWS
     account and your IAM service.
 
@@ -270,7 +270,7 @@
 
 ## IAM Users
 
-    There is a hard limit of 5,000 IAM Users per AWS account and each IAM User can be a member of 10 or less groups.
+    There is a hard limit of 5,000 IAM Users per AWS Account and each IAM User can be a member of 10 or less groups.
     Therefore IAM Users may not be a viable solution for you if you have internet-scale applications or you're part
     of a large organisation. For use cases that require a higher user count, consider IAM Roles and Identity 
     Federation.
@@ -610,7 +610,7 @@
 
 ## ARN (Amazon Resource Name)
 
-    ARNs uniquely identify resources within any AWS accounts, ARNs are used in IAM policies which are attached to
+    ARNs uniquely identify resources within any AWS Accounts, ARNs are used in IAM policies which are attached to
     identities like IAM users, the defined format is:
 
     arn:partition:service:region:account-id:resource-id
@@ -697,14 +697,14 @@
     access to individual users and roles, but not a group.
 
     Note: A principle is a person, application, device or process that wants to authenticate with AWS.
-    Note: Unless you define one, there is no universal group containing all users associated with the AWS account.
+    Note: Unless you define one, there is no universal group containing all users associated with the AWS Account.
     Note: There is a soft limit of 300 Groups per account, which can be increased via support ticket.
 
 ## IAM Roles
 
-    IAM Roles are an entity that sits within an AWS account. Where a single principle uses an IAM User, an IAM Role
+    IAM Roles are an entity that sits within an AWS Account. Where a single principle uses an IAM User, an IAM Role
     can have multiple or an unknown number of (internal or external) principles. Due to the 5,000 IAM User limit 
-    imposed upon an AWS account, IAM Roles are a perfect fit to scale beyond this limit due to it's ability to
+    imposed upon an AWS Account, IAM Roles are a perfect fit to scale beyond this limit due to it's ability to
     interact with users external to AWS i.e. Windows Active Directory, this is known as Federated Authentication.
     When a user assumes an IAM Role, that user becomes that role and inherits the permissions that comes with it.
     IAM Roles should be specific in scope and temporary, although a Unix root user is persistent, you could think
@@ -714,8 +714,8 @@
     IAM Roles differ from IAM Users with regards to what policies can be attached, i.e. IAM Users can only have
     permission policies attached (inline or managed). However, IAM Roles have another type of policy, a trust 
     policy. A trust policy controls which identities can assume the role, a trust policy can reference identities 
-    within the same AWS account, i.e. IAM Users, other roles or AWS services; it can also reference identities from
-    external AWS account, external identities and even allows for anonymous usage of the role.
+    within the same AWS Account, i.e. IAM Users, other roles or AWS services; it can also reference identities from
+    external AWS Account, external identities and even allows for anonymous usage of the role.
 
     When an identity assumes a role, it is given a temporary security credentials, whenever an identity uses the 
     temporary credentials are used, the credentials are checked against the permissions policy associated with that
@@ -784,8 +784,114 @@
 
 ## AWS Organisations
 
-    AWS Organisations is a product that allows large organisations to manage multiple AWS accounts in a cost
-    effective way with minimal management overhead. If AWS Organisations existed
+    AWS Organisations is a product that allows large organisations to manage multiple AWS Accounts in a cost
+    effective way with minimal management overhead. If AWS Organisations didn't exist, organisations would have to
+    manage multiple payment methods and IAM Users which would get very complicated very quick. AWS Organisations are
+    structured as follows:
+
+        1. You have standard AWS Account you create an AWS Organisation. A distinction that must be understood, that
+           you're not creating an organisation within the AWS Account, you're just using the account to create the
+           organisation.
+        2. The AWS Account that you created the AWS Organisation with, becomes the management account of that
+           organisation.
+        3. Using the management account, you can invite other standard AWS Account to the AWS Organisation. When the
+           accounts accept the invitation, they change from standard accounts to member accounts. Therefore, AWS
+           Organisations have one management account and zero or more member accounts.
+        4. You can then create a structure and group these member accounts, at the top is the organisation root: the
+           organisation root is a container that can hold the management account, member accounts, or other
+           containers that are known as organisational units (OU). OUs can also containers the management account,
+           member accounts and other containers to form a complex nested structure should you have a requirement for
+           such a structure.
+
+    A feature of AWS Organisations is consolidated billing: the individual AWS Accounts delegate their billing to
+    the management account. Therefore, you have one single bill that contains the billing for all member accounts
+    of the organisation.
+
+    Another feature a service call service control policies, which allows you to restrict what services accounts in 
+    an AWS Organisation can use.
+
+    When creating an organisation, it changes the best practices with regards to user logins and permissions.
+    Within organisations you don't need to have IAM Users within every AWS Account, instead you can use IAM Roles
+    to allow IAM Users to access other AWS Accounts.
+
+    Most organisations will keep their management account clean and use it for billing only, and use another account
+    as the 'Identity Account', because they will most likely have their own on-prem users and can utilise identity
+    federation via this Identity Account. Once we've logged in using 
+
+    Note: for larger businesses, the more services you use the cheaper some services are, also paying in advance 
+    for services will also bring down the cost. Once logged in via the identity account, we can use a feature called
+    role switch, allowing us to assume roles in different AWS Accounts within the organisation.
+
+## Service Control Policies
+
+    Service Control Policy (SCP) is a policy document (JSON), use to restrict permissions within an organisation.
+    An SCP can be attached to the root container of the organisation, to one or more OUs and it can be attached to
+    individual accounts. SCP's apply down the organisational tree, so it will affect nested OUs and individual
+    accounts that are part of an OU with an SCP applied to it. SCP's can not give permissions to accounts or users,
+    it can only restrict the actions an account can do (not the users directly); therefore you will still need to  
+    give identities within the AWS accounts permissions to use services. SCP's are powerful tool in large 
+    organisations because it enables you to restrict certain accounts to certain regions, or even restrictions for 
+    certain accounts to a particular size of an EC2 instance.
+
+    Note: You can not restrict the management account via SCP's, therefore it's good practice to not use the 
+          management account for any AWS resources in production.
+    Note: Because SCP's restrict the permissions of an account, they indirectly restrict what the root user of an
+          account can do.
+
+## AWS Control Tower
+
+    AWS Control Tower is service that facilitates a multi-account environment. It orchestrates other AWS services to
+    automate/delegate account provisioning, configuration, logging, auditing, SSO/ID Federation and policy 
+    enforcement.
+
+![AWS Control Tower Architecture][awsControlTowerArchitecture]
+
+    Like AWS Organisations, you're required to create an AWS Control Tower, the account that does this becomes the
+    management account of the landing zone (the landing zone* is the multi-account env of AWS Control Tower). 
+    Within the management account we have Control Tower which orchestrates everything, AWS Organisations that 
+    provides the multi-account structure, single sign-on via the identity centre. When AWS Control Tower is created
+    two OU's are setup:
+     
+        1. Foundation Operational Unit (Security): 
+               This will contain two accounts, the Audit Account and the Log Archive Account. The Audit Account for 
+               users that need access to Audit information created by Control Tower, this is a good place for third 
+               party tools that need access to audit information of your environment. Services used here could 
+               include SNS, for notifications when governance is changed within the environments and CloudWatch for 
+               landing zone wide metrics. The Log Archive Account is for access to all logging information for all 
+               accounts enrolled within the landing zone. It's a secure read only environment for your logging and 
+               explicit access must for  granted. Services used by this account could include AWS Config and 
+               CloudTrail.
+
+        2. Custom Operational Unit (Sandbox):
+                This is where any accounts create by the Account Factory are placed. The Account Factory, automates
+                the creation, editing or deletion of accounts. It can be interacted with via the AWS Control Tower
+                management console or the Service Catalogue. The configuration of these accounts are handled by the
+                Account Factory with a Account and Network Baseline - this is achieved by using AWS CloudFormation
+                so you will notice stacks being created within your AWS Account. The Account Factory also utilises
+                AWS Config or Service Control Policies to implement guardrails to alert if deviances in permissions
+                occur or prevent them from occurring in the first place. This OU is used to test things out or have
+                less rigid security, however, you can create other OUs and accounts.
+    
+    Guardrails are rules for multi-account governance, the come in three types:
+
+        1. Mandatory: Always applied.
+        2. Strongly Recommended: They're strongly recommended by AWS.
+        3. Elective: Optional to implement your specific requirements.
+
+    They have two different effects: 
+        1. preventative (using SCP), that stop you from doing certain things which are either enforced or not 
+           enabled.
+
+        2. Detective: A compliance check that uses AWS config rules to ensure a certain object in AWS is in
+           compliance  of the defined Guardrail. Detective Guardrails can have one of the following statuses: clear,
+           in violation or not enabled.
+
+    * The Landing Zone is a feature to allow anyone to implement a well architected multi account environment, it 
+    has the concept of a Home Region, the region you initially deploy it to. You can explicitly restrict regions. 
+
+    Note: Automated account provisioning can be done by cloud admins or end users with permissions, that allow for a
+    self service provisioning of accounts.
+
 
 [awsLocateSecurityCredentials]: ./images/aws-security-credentials.png
 [awsAddMFA]: ./images/aws-add-mfa.png
@@ -803,3 +909,4 @@
 [awsConfigureProfileCLI]: ./images/aws-configure-profile-cli.png
 [awsSharedResponsibilityModelSecurity]: ./images/aws-shared-responsibility-model-v2.jpeg
 [awsPlatformsSharedResponsibilityModel]: ./images/aws-shared-responsibility-model.png
+[awsControlTowerArchitecture]: ./images/aws-control-tower-architecture.png

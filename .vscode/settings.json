@@ -19,8 +19,11 @@
         "nameserver",
         "optimise",
         "organisation",
+        "organisational",
         "Organisations",
         "subresource",
-        "Subresources"
+        "Subresources",
+        "utilise",
+        "utilises"
     ]
 }
