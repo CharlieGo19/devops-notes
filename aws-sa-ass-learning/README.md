@@ -879,8 +879,8 @@
         3. Elective: Optional to implement your specific requirements.
 
     They have two different effects: 
-        1. preventative (using SCP), that stop you from doing certain things which are either enforced or not 
-           enabled.
+
+        1. Preventative (using SCP): Policies that stop you from doing certain things which are either enforced or not enabled.
 
         2. Detective: A compliance check that uses AWS config rules to ensure a certain object in AWS is in
            compliance  of the defined Guardrail. Detective Guardrails can have one of the following statuses: clear,
@@ -892,6 +892,211 @@
     Note: Automated account provisioning can be done by cloud admins or end users with permissions, that allow for a
     self service provisioning of accounts.
 
+## S3 Advanced: Security
+
+    S3 by default is private, explicit permissions to allow access must be configured. This can be done in a number 
+    of ways. One of which is a Resource Policy, they're like identity policies, but attached to the resource, i.e. 
+    an S3 Bucket. The permissions are from a resource perspective. Unlike identity policies, where you can only 
+    allow/deny from within the same account, resource policies allow/deny from the same or different accounts.
+    Another distinction between identity and resource policies is that permissions must be attached to a valid 
+    identity, within an identity policy, however, in a resource policy permissions can be attached to anonymous 
+    principles (i.e. unauthenticated principles).
+
+    An example of a Resource Policy would be:
+
+    {
+        "Version":"2012-10-17",
+        "Statement": [
+            {
+                "Sid": "PublicRead",
+                "Effect": "Allow",
+                "Principle": "*",
+                "Action": ["s3:GetObject"],
+                "Resource": ["arn:aws:s3:::secretromcomstash/*"]
+            }
+        ]
+    }
+
+    Note: In the above example, the principle is a wildcard, i.e., this allows anonymous principles to read the
+    buckets objects. This is how we can infer that this is a Resource Policy and not an Identity Policy.
+
+
+    Note: For more enforceable permissions please see - 
+    https://docs.aws.amazon.com/AmazonS3/latest/userguide/example-bucket-policies.html
+
+    In some legacy implementations you may come across ACLs (Access Control Lists), these are simple, very limited
+    security feature that should never be used in place of a Resource Policy. See below for the full extent of
+    permissions afforded by an ACL.
+
+![AWS ACL Permission Limitation][awsACLPermissions]
+
+    You can block any anonymous principles from accessing your bucket using the block public access feature. This is
+    another layer of security to prevent misconfigurations revealing sensitive data. The feature has levels of what
+    configurations it will ignore, i.e. if an ACL has granted public access, it will be ignored if configured to do
+    so via Block Public Access.
+
+    In Summary here is some rule of thumb principles:
+
+    Use an Identity Policy when:
+        
+        1. Controlling different resources: Some resources don't support Resource Policies and managing multiple
+           Resource Policies can be burdensome.
+        2. You have a preference for IAM: IAM Policies can manage all resources.
+        3. The same account: No external access means it'll be easier to use IAM to control your principles that are
+           within your account.
+
+    Use a Resource Policy for an S3 Bucket when:
+
+        1. You're just controlling access to S3.
+        2. You need to allow access to other accounts or anonymous principles.
+
+    Use an ACL when:
+
+        1. Never, just don't.
+        2. There is an explicit requirement with a very good justification.
+
+## S3 Advanced: Static Hosting§
+
+    To use S3 for static hosting you will need to do the following:
+
+        1. Configure the S3 Bucket to enable static hosting.
+        2. Set the Index and Error documents.
+
+    Note: Website endpoints are automatically created, unless you're using a custom domain via Route 53. If you're
+    using a custom domain then you must name your bucket name the same as your domain, i.e. the url - 
+    https://www.romcoms.charliego.com would need a bucket named romcoms.charliego.com, so if you're starting a
+    project that requires a static website, then reserve your bucket names asap.
+
+    Two good use cases for S3 static hosting are:
+
+        1. Offloading: If you have a website with some media, i.e. videos, images, etc... rather than storing those
+           within your compute instance which would not be cost effective, you could store them within an S3 bucket
+           and have your HTML reference the S3 bucket instead. 
+        2. Out-of-bounds pages: For example pages that wouldn't be best suited for being stored on your main server,
+           like maintenance or status pages that should be accessible in the event your main servers are not
+           reachable. 
+
+    If you're using SSR frameworks there are a few things to consider:
+
+        1. S3 can not process SSR, so you will need another mechanism and architecture, i.e. using a static-adapter
+           to render a SPA and then call API endpoints that could be run using EC2.
+        2. If you need a complete SSR implementation consider AWS Fargate/Lambda.
+
+
+## S3 Advanced: Object Versioning and MFA Delete
+
+    Object versioning is disabled by default, once enabled however, it can not be disabled, but can be suspended. 
+    Versioning allows for multiple versions of an object to be stored, operations that modify objects generate a new
+    version. To uniquely identify a version (as the object name/key will be the same) you would use the defined id:
+
+        ---+-- KEY = CutePictureOfHenryCavill.png, ID = 1111112
+           |
+           |
+           |
+           +-- KEY = CutePictureOfHenryCavill.png, ID = 1111111
+           |
+           |
+           |
+           +-- KEY = CutePictureOfHenryCavill.png, ID = 1111110
+
+    When deleting an object that is in a versioned bucket, the object is not actually deleted, it is replaced by a
+    delete marker, which is just a new version of that object which hides previous objects. Upon deleting the delete
+    marker you will restore previous versions. There are certain controls on bucket versioning, for example you can 
+    configure MFA Delete, which will require MFA to delete an object or to change the versioning state of a bucket.
+
+    Note: Because objects are not deleted, you should be mindful of storage costs.
+    Note: You can fully delete an object by specifying the ID of an object, this is irreversible. If you delete a 
+          specific version, then the most recent version will become the active version.
+    Note: The only way to zero a cost of a bucket, is by deleting the bucket.
+    Note: When deleting via a version when MFA Delete is enabled the serial number and the MFA Code is required to 
+          be passed with the API call. 
+
+## S3 Advanced: Performance Optimisation
+
+    Normal upload is a single PUT upload stream - if an upload is interrupted, it would need to be restarted - it's
+    limited to 1 steam and will be limited in upload speed. Limited to 5GB upload, if you're uploading 5GB then the
+    single PUT method is probably not appropriate for your use case, as it's unreliable.
+
+    Multipart Upload: Breaks file up into blobs, min size is 100MB. An upload can be split into a maximum of 10,000
+    parts, ranging from 5MB to 5GB in size. The last part however can be smaller than 5MB. If a part fails, it can
+    be restarted - making it more reliable to transfer. It also increases the transfer rate, as this is the sum of
+    the speed of all parts that are simultaneously being uploaded.
+
+    Accelerated Transfer: When transferring data between two geologically distant regions, your data will traverse
+    the public internet, what route the data takes depends on the various ISP's involved and they will consider the
+    most economically viable route. These considerations may not always align with our requirements as we may need
+    a more performant route. For this AWS has S3 Accelerated Transfer: this uses strategically placed Edge Locations
+    to send the data through fewer normal networks and provide a more optimal route.
+
+    Note: S3 Accelerated Transfer is off by default and has some restrictions when enabling it, such as the name of
+    the S3 bucket must be DNS Compatible.
+
+## Key Management Service
+
+    AWS KMS is a Regional & Public Service supporting Symmetric and Asymmetric Keys. Using KMS you can Create, Store
+    and Manage Keys. It also supports cryptographic operations, i.e. encrypt, decrypt... Keys part of the KMS NEVER
+    leave KMS, and provides a FIPS 140-2 (Level 2) compliant service. KMS Keys can be used by you, applications and
+    other AWS Services.
+
+    KMS Keys are logical and consist of:
+
+        - Key ID
+        - Creation Date
+        - Key Policy (Resource Policy)
+        - Description
+        - State
+
+    Every key is backed by physical key material, and this is what's used by KMS to perform its operation - it can
+    be generated or imported. KMS Keys can be used to encrypt up to 4KB of data. A typical flow for using KMS may
+    look like this:
+
+        1. Charlie requests to CreateKey, the Key is created and stored in an encrypted form within KMS.
+        2. Charlie requests to Encrypt some data, providing the data to KMS and specifying which key to use. Given
+           correct permissions, KMS takes the data and encrypts it with the specified key and returns the encrypted
+           data.
+        3. Charlie needs to decrypt the data and calls the decrypt operation, KMS doesn't ask which key was used as
+           this information is encoded in the cipher text, returning the plaintext.
+
+    For encrypting data larger than 4KB you can use Data Encryption Key, the DEK is generated using the KMS key, 
+    therefore, they're linked to the KMS key that generated the it. It's important to understand and remember that KMS
+    DOES NOT STORE THE DEK key. It provides it to you, or the service that requested it, then discards it because KMS
+    doesn't perform the encryption or decryption of the data using the DEK, it's done by you or the service requesting 
+    it.
+
+    Key Concepts:
+
+        - KMS Keys are isolated to a region and never leave the KMS Service.
+        - Keys are AWS owned or customer owned, AWS Owned keys are usually managed by the service that uses them.
+        - Customer owned keys are either AWS managed or customer managed. AWS managed are created automatically when
+          you use a service like S3 that has integrations with KMS. Customer managed are created explicitly by the 
+          customer to be used within the service or application.
+        - Customer managed keys are more configurable that AWS managed keys, i.e. you can edit rotation policy etc.
+        - Aliases: shortcuts to keys, i.e. my-app-primary-key. Be aware, aliases are per region.
+
+    Key Permissions: (high level)
+
+    Usually, services that are contained within the creating account usually have an implicit allow unless there's an
+    explicit deny - however, KMS Key policies differ, a Key Policy is a resource policy, EVERY KEY HAS ONE. Therefore,
+    a common setup might have a KMS Key Policy that allows an account, management permissions for the key, then use IAM
+    policies to apply further permissions. In high security use cases, it is best practice to grant permissions directly
+    within the key policy, and not delegate permission management.
+
+    A key policy might look like:
+
+        {
+            "Sid": "Enable IAM User Permissions",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "arn:aws:iam::8998135:user/KMSAdmin"
+            },
+            "Action": "kms:*",
+            "Resource": "*"
+        }
+
+    Note: KMS is capable of supporting some multi-region features.
+    Note: KMS NEVER stores the keys in plaintext on disc. It will exist in plaintext on memory when needed.
+    Note: Operations within KMS have separate permissions.
+    Note: https://csrc.nist.gov/pubs/fips/140-2/upd2/final
 
 [awsLocateSecurityCredentials]: ./images/aws-security-credentials.png
 [awsAddMFA]: ./images/aws-add-mfa.png
@@ -910,3 +1115,4 @@
 [awsSharedResponsibilityModelSecurity]: ./images/aws-shared-responsibility-model-v2.jpeg
 [awsPlatformsSharedResponsibilityModel]: ./images/aws-shared-responsibility-model.png
 [awsControlTowerArchitecture]: ./images/aws-control-tower-architecture.png
+[awsACLPermissions]: ./images/aws-acl-permissions.png

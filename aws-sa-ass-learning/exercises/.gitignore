@@ -1,0 +1,4 @@
+*/terraform-deployment/*.tfstate*
+*/terraform-deployment/*lock*
+*/terraform-deployment/.terraform
+
