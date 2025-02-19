@@ -880,7 +880,8 @@
 
     They have two different effects: 
 
-        1. Preventative (using SCP): Policies that stop you from doing certain things which are either enforced or not enabled.
+        1. Preventative (using SCP): Policies that stop you from doing certain things which are either enforced or 
+           not enabled.
 
         2. Detective: A compliance check that uses AWS config rules to ensure a certain object in AWS is in
            compliance  of the defined Guardrail. Detective Guardrails can have one of the following statuses: clear,
@@ -1058,10 +1059,10 @@
            this information is encoded in the cipher text, returning the plaintext.
 
     For encrypting data larger than 4KB you can use Data Encryption Key, the DEK is generated using the KMS key, 
-    therefore, they're linked to the KMS key that generated the it. It's important to understand and remember that KMS
-    DOES NOT STORE THE DEK key. It provides it to you, or the service that requested it, then discards it because KMS
-    doesn't perform the encryption or decryption of the data using the DEK, it's done by you or the service requesting 
-    it.
+    therefore, they're linked to the KMS key that generated the it. It's important to understand and remember that 
+    KMS DOES NOT STORE THE DEK key. It provides it to you, or the service that requested it, then discards it 
+    because KMS doesn't perform the encryption or decryption of the data using the DEK, it's done by you or the 
+    service requesting it.
 
     Key Concepts:
 
@@ -1075,11 +1076,11 @@
 
     Key Permissions: (high level)
 
-    Usually, services that are contained within the creating account usually have an implicit allow unless there's an
-    explicit deny - however, KMS Key policies differ, a Key Policy is a resource policy, EVERY KEY HAS ONE. Therefore,
-    a common setup might have a KMS Key Policy that allows an account, management permissions for the key, then use IAM
-    policies to apply further permissions. In high security use cases, it is best practice to grant permissions directly
-    within the key policy, and not delegate permission management.
+    Usually, services that are contained within the creating account usually have an implicit allow unless there's 
+    an explicit deny - however, KMS Key policies differ, a Key Policy is a resource policy, EVERY KEY HAS ONE.
+    Therefore, a common setup might have a KMS Key Policy that allows an account, management permissions for the 
+    key, then use IAM policies to apply further permissions. In high security use cases, it is best practice to 
+    grant permissions directly within the key policy, and not delegate permission management.
 
     A key policy might look like:
 
@@ -1098,6 +1099,173 @@
     Note: Operations within KMS have separate permissions.
     Note: https://csrc.nist.gov/pubs/fips/140-2/upd2/final
 
+## S3 Object Encryption, CSE/SSE:
+
+    One thing to note, is that buckets are NOT encrypted, objects are - encryption is not done at the bucket level, 
+    it's done at the object level; and each object may have different encryption settings.
+
+    There are two types of encryption, simplistically:
+
+        1. Client-side encryption, where the object is encrypted on the clients machine. This comes with trade offs,
+           for example: you are ultimately responsible for the integrity of the encrypted objected, i.e. you 
+           generate the encryption key, you encrypt the data and you handle the storage of the encryption key.
+
+        2. Server-side encryption, where the object is encrypted on the server. This also comes with trade offs, for 
+           example: you are placing a significant level of trust in AWS's services - if you have sensitive data,
+           this must be a significant part of your decision making process in accordance with your companies
+           guidelines and regulatory obligations. AWS mandates that you must use encryption at rest, i.e. S3 objects
+           must be stored in an encrypted state.
+
+           There ae three ways we can achieve this:
+
+              i.   Server-side encryption with customer provided keys (SSE-C).
+              ii.  Server-side encryption with Amazon S3-Managed Keys (SSE-S3, AES256), note that this is the
+                   default method. This process involves the following: the user/app uploads the object in plaintext 
+                   to an S3 endpoint, where S3 encrypts the object with an object key and stores the corresponding 
+                   ciphertext. S3 will then encrypt the object key with an S3 key and discard the object key. To 
+                   retrieve the objects plaintext, S3 will do this process in reverse. You as the user have no 
+                   control over these keys, S3 will create, manage and rotate the key. It is worth mentioning, that 
+                   in a use case where you have a heavily regulated environment and need to control who can access 
+                   the data, this is not suitable - i.e. you can't setup an environment where you can restrict 
+                   access to the data of the S3 administrator, as they can encrypt and decrypt the S3 Bucket 
+                   objects.
+              iii. Server-side encryption with KMS KEYS Stored in AWS Key Management Service (SSE-KMS). Using KMS 
+                   allows you to have clear role separation, as you're able to give administrative permissions to
+                   Bob, while denying him permissions to the KMS Key, therefore Bob would not be able to decrypt the
+                   S3 Objects. Services such as AWS Cloudtrail could be use to provide an audit trail for KMS Key
+                   usage.
+
+            +------------------------+------------------+---------------------+---------------------+
+            |        Method          |  Key Management  | Encryption Process  |       Extras        |
+            +------------------------+------------------+---------------------+---------------------+
+            | Client-Side Encryption | YOU              | YOU                 | S3 never sees       |
+            |                        |                  |                     | plaintext           |
+            +------------------------+------------------+---------------------+---------------------+
+            | SSE-C                  | YOU              | S3                  |                     |
+            +------------------------+------------------+---------------------+---------------------+
+            | SSE-S3                 | S3               | S3                  | No KEY control      |
+            |                        |                  |                     | No role separation  |
+            +------------------------+------------------+---------------------+---------------------+
+            | SSE-KMS                | S3 & KMS         | S3                  | KEY Rotation Control|
+            |                        |                  |                     | Role Separation     |
+            +------------------------+------------------+---------------------+---------------------+
+        
+    Note: all data, even ciphertext generated client side, ia usually encrypted in transit, i.e. from client to AWS. 
+
+## S3 Bucket Keys:
+
+    A typical SSE configuration flow might follow something like:
+
+        i.   User does a PutObject to S3 which will use either SSE-KMS or SSE-S3.
+        ii.  Each object using SSE-KMS or AWS/S3 Managed keys will make an API call to KMS.
+        iii. KMS will provide a generated DEK for each object put, which is stored alongside the object.
+
+    This architecture has scalability problems:
+
+        i.  If you're using SSE-KMS, will have a monetary cost associated with it, although using AWS/S3 Managed keys
+            will not have a monetary cost as AWS absorbs these costs.
+        ii. You will limited by request throttling at 5,500, 10,000 or 50,000 requests/second.
+
+    To address these limitation you could use an S3 Bucket Key, this is where a Time Limited Bucket Key is generated
+    by KMS and any subsequent DEKs would be generated within S3 using the Bucket Key. This significantly reduces the
+    API calls made to KMS reducing and reduces the costs incurred, improving scalability.
+
+    There's a couple of things to consider when using S3 Bucket Keys:
+
+        i.   CloudTrail KMS events now show the bucket, as the encryption has been offloaded to S3.
+        ii.  You will see the bucket in the logs, not the object.
+        iii. Works with replication, i.e. the object encryption settings are maintained at the destination.
+        iv.  If you replicate plaintext to a bucket using bucket keys, the object will be encrypted at the
+            destination. If you're using etags, these values will change and be rendered useless.
+
+    Note: Enabling S3 Bucket Key is not retroactive, i.e. only effects objects after enabled on bucket.
+
+## S3 Storage Classes
+
+    S3 Standard:
+
+        Features:
+
+            i.   Objects are replicated across at least 3 AZs in the AWS region.
+            ii.  Offers 99.99999999999% durability (11 9s), therefore, for every 10,000,000 objects, you will suffer
+                 a loss of 1 object per 10,000 years.
+            iii. Content-MD5 Checksums and Cyclic Redundancy Checks (CRCs) are used to detect and fix any data
+                 corruption.
+            iv.  S3 Standard has a milliseconds first byte latency.
+            v.   Objects can be made publicly available.
+        
+        Costs:
+
+            i.   You will be billed a GB/month fee for data stored.
+            ii.  You will be billed a $/GB for transfers out (Inbound traffic is free).
+            iii. There is a price per 1,000 requests.
+
+        Penalties:
+
+            i.   There is NO retrieval fee.
+            ii.  There is NO minimum duration.
+            iii. There is NO minimum size.
+        
+        S3 Standard is considered the most balanced option for storage at scale when considering the dollar cost vs
+        features available.
+
+    S3 Standard-IA (Infrequent Access):
+        
+        Features:
+
+            i.   Objects are replicated across at least 3 AZs in the AWS region.
+            ii.  Offers 99.99999999999% durability (11 9s), therefore, for every 10,000,000 objects, you will suffer
+                 a loss of 1 object per 10,000 years.
+            iii. Content-MD5 Checksums and Cyclic Redundancy Checks (CRCs) are used to detect and fix any data
+                 corruption.
+            iv.  S3 Standard has a milliseconds first byte latency.
+            v.   Objects can be made publicly available.
+        
+        Costs:
+
+            i.   You will be billed a GB/month fee for data stored, however, this cost is significantly less than
+                 using S3 Standard.
+            ii.  You will be billed a $/GB for transfers out (Inbound traffic is free).
+            iii. There is a price per 1,000 requests.
+
+        Penalties:
+
+            i.   There is a GB data retrieval fee.
+            ii.  There is a minimum duration charge of 30 days, even if your object is stored for less.
+            iii. There is a minimum capacity charge of 128 KB per object.
+
+        If you're storing lots of smaller files, i.e. < 128 KB or access the data frequent or store short lived data
+        the cost efficacy of S3 Standard-IA diminishes.
+
+    S3 One Zone-IA:
+
+            Features:
+
+            i.   Objects are stored in 1 availability zone only.
+            ii.  Offers 99.99999999999% durability (11 9s), therefore, for every 10,000,000 objects, you will suffer
+                 a loss of 1 object per 10,000 years.
+            iii. Content-MD5 Checksums and Cyclic Redundancy Checks (CRCs) are used to detect and fix any data
+                 corruption.
+            iv.  S3 Standard has a milliseconds first byte latency.
+            v.   Objects can be made publicly available.
+        
+        Costs:
+
+            i.   You will be billed a GB/month fee for data stored, however, this cost is significantly less than
+                 using S3 Standard.
+            ii.  You will be billed a $/GB for transfers out (Inbound traffic is free).
+            iii. There is a price per 1,000 requests.
+
+        Penalties:
+
+            i.   There is a GB data retrieval fee.
+            ii.  There is a minimum duration charge of 30 days, even if your object is stored for less.
+            iii. There is a minimum capacity charge of 128 KB per object.
+            iv.  Increased risk to data.
+
+        This storage class should not be used for short-lived critical or non-replaceable data.
+
+    
 [awsLocateSecurityCredentials]: ./images/aws-security-credentials.png
 [awsAddMFA]: ./images/aws-add-mfa.png
 [awsDeviceNameAndMedium]: ./images/aws-device-name-medium.png

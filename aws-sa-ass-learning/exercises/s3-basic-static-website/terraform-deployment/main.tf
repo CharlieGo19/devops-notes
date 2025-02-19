@@ -34,16 +34,16 @@ locals {
 }
 
 resource "aws_s3_object" "s3_basic_static_website_filefolders" {
-    for_each    = local.fltrd_files
+    for_each         = local.fltrd_files
     bucket           = aws_s3_bucket.s3_basic_static_website.bucket
     key              = "${each.value}"
     source           = "${path.root}/../website_files/${each.value}"
     content_type     =  strcontains(each.value, "html") ? "text/html" : "image/jpeg"
-    etag             = "${path.root}/../website_files/${each.value}"
+    etag             =  filemd5("${path.root}/../website_files/${each.value}")
 }
 
 resource "aws_s3_bucket_public_access_block" "allow_public_access" {
-    bucket = aws_s3_bucket.s3_basic_static_website.id
+    bucket                  = aws_s3_bucket.s3_basic_static_website.id
 
     block_public_acls       = false
     block_public_policy     = false
@@ -61,7 +61,7 @@ data "aws_iam_policy_document" "allow_anonymous_principle_access_document" {
     statement {
       sid      = "PublicRead"
       effect   = "Allow"
-      actions = [ "s3:GetObject" ]
+      actions  = [ "s3:GetObject" ]
       principals {
         type = "*"
         identifiers = [ "*" ]

@@ -2,4 +2,5 @@
 docker-learning/resources
 docker-learning/notes.txt
 aws-sa-ass-learning/aws-sa-associate-saac03
-.vscode/settings.json
+aws-sa-ass-learning/.vscode
+.vscode
