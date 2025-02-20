@@ -1218,7 +1218,7 @@
                  a loss of 1 object per 10,000 years.
             iii. Content-MD5 Checksums and Cyclic Redundancy Checks (CRCs) are used to detect and fix any data
                  corruption.
-            iv.  S3 Standard has a milliseconds first byte latency.
+            iv.  S3 Standard-IA has a milliseconds first byte latency.
             v.   Objects can be made publicly available.
         
         Costs:
@@ -1239,14 +1239,14 @@
 
     S3 One Zone-IA:
 
-            Features:
+        Features:
 
             i.   Objects are stored in 1 availability zone only.
             ii.  Offers 99.99999999999% durability (11 9s), therefore, for every 10,000,000 objects, you will suffer
                  a loss of 1 object per 10,000 years.
             iii. Content-MD5 Checksums and Cyclic Redundancy Checks (CRCs) are used to detect and fix any data
                  corruption.
-            iv.  S3 Standard has a milliseconds first byte latency.
+            iv.  S3 One Zone-IA has a milliseconds first byte latency.
             v.   Objects can be made publicly available.
         
         Costs:
@@ -1264,8 +1264,206 @@
             iv.  Increased risk to data.
 
         This storage class should not be used for short-lived critical or non-replaceable data.
-
     
+    S3 Glacier - Instant:
+  
+        Features:
+
+            i.   Objects are replicated across at least 3 AZs in the AWS region.
+            ii.  Offers 99.99999999999% durability (11 9s), therefore, for every 10,000,000 objects, you will suffer
+                 a loss of 1 object per 10,000 years.
+            iii. Content-MD5 Checksums and Cyclic Redundancy Checks (CRCs) are used to detect and fix any data
+                 corruption.
+            iv.  S3 Glacier - Instant has a millisecond access.
+            v.   Objects can be made publicly available.
+        
+        Costs:
+
+            i.   You will be billed a GB/month fee for data stored, however, this cost is significantly less than
+                 using S3 Standard.
+            ii.  You will be billed a $/GB for transfers out (Inbound traffic is free).
+            iii. There is a price per 1,000 requests.
+
+        Penalties:
+
+            i.   There is a GB data retrieval fee.
+            ii.  There is a minimum duration charge of 90 days, even if your object is stored for less.
+            iii. There is a minimum capacity charge of 128 KB per object.
+
+        S3 Glacier Instant should be used for long-lived data, accessed once a quarter with a requirement for 
+        millisecond access.
+
+    S3 Glacier - Flexible:
+
+         Features:
+
+            i.   Objects are replicated across at least 3 AZs in the AWS region.
+            ii.  Offers 99.99999999999% durability (11 9s), therefore, for every 10,000,000 objects, you will suffer
+                 a loss of 1 object per 10,000 years.
+            iii. Content-MD5 Checksums and Cyclic Redundancy Checks (CRCs) are used to detect and fix any data
+                 corruption.
+            iv.  S3 Glacier - requires a retrieval process, once complete, stores the data in an S3 Standard-IA
+                 bucket and the data is removed once accessed. 
+        
+        Costs:
+
+            i.   You will be billed a GB/month fee for data stored, however, this cost is significantly less than
+                 using S3 Standard.
+            ii.  You will be billed for each retrieval process triggered.
+
+        Penalties:
+
+            i.   There is a retrieval fee.
+            ii.  There is a minimum duration charge of 90 days, even if your object is stored for less.
+            iii. There is a minimum capacity charge of 40 KB per object.
+
+        This class of storage is best suited for archival data where access is needed sparingly, i.e. yearly and you
+        can tolerate an minutes to hours retrieval. The retrieval process tiers are as follows:
+
+            i.   Expedited (1-5 minutes)
+            ii.  Standard (3-5 hours)
+            iii. Bulk (5-12 hours)
+
+        The faster the retrieval time, the more expensive it gets.
+    
+    S3 Glacier - Deep Archive:
+
+         Features:
+
+            i.   Objects are replicated across at least 3 AZs in the AWS region.
+            ii.  Offers 99.99999999999% durability (11 9s), therefore, for every 10,000,000 objects, you will suffer
+                 a loss of 1 object per 10,000 years.
+            iii. Content-MD5 Checksums and Cyclic Redundancy Checks (CRCs) are used to detect and fix any data
+                 corruption.
+            iv.  S3 Glacier - requires a retrieval process, once complete, stores the data in an S3 Standard-IA
+                 bucket and the data is removed once accessed. 
+        
+        Costs:
+
+            i.   You will be billed a GB/month fee for data stored, however, this cost is significantly less than
+                 using S3 Standard.
+            ii.  You will be billed for each retrieval process triggered.
+
+        Penalties:
+
+            i.   There is a retrieval fee.
+            ii.  There is a minimum duration charge of 180 days, even if your object is stored for less.
+            iii. There is a minimum capacity charge of 40 KB per object.
+
+        This class of storage is best suited for archival data where access is needed sparingly, i.e. yearly and you
+        can tolerate an minutes to hours retrieval. The retrieval process tiers are as follows:
+
+            i.  Standard (3-5 hours)
+            ii. Bulk (up to 48 hours)
+
+        First bye latency is hours to days.
+    
+    S3 Intelligent-Tiering:
+
+
+        S3 Intelligent Tiering is designed for long-lived data inconsistent or unknown usage patterns.
+        S3 Intelligent Tiering consists of 5 tiers:
+
+            i.   Frequent Access (costs the same as S3 Standard)
+            ii.  Infrequent Access (costs the same as S3 Standard-IA)
+            iii. Archive Instant Access (costs comparable to Glacier - Instant)
+            iv.  Archive Access (costs comparable to Glacier - Flexible)
+            v.   Deep Archive (costs comparable to Glacier - Deep Archive)
+
+        S3 Intelligent Tiering utilises all of AWS S3 Storage Classes and manages your objects storage requirements
+        based on how often your object is accessed. These thresholds are as follows:
+
+            i.   Anything accessed < 30 days will stay in the Frequent Access storage.
+            ii.  Anything accessed > 30 days ago will be stored in the Infrequent Access storage. 
+            iii. There's a 90 day minimum for Archive Instant Access.
+            iv.  (optional) between 90 - 270 days objects can be moved into Archive Access, however, there is a
+                 retrieval time. Therefore your applications must support asynchronous actions.
+            vi.  (optional) between 180 - 730 days objects can be moved into Deep Archive, which also has a 
+                 retrieval time.
+
+        There is a monitoring and automation cost for Intelligent Tiering per 1,000 objects.
+
+## S3 Lifecycle Configuration
+
+    A lifecycle configuration is a set of rules that consist of actions on a Bucket or a group of objects. These 
+    actions consist of:
+    
+        i.  Transition Actions: Transition objects between different S3 Storage Classes.
+        ii. Expiration Actions: Delete objects.
+
+    Both Transition and Expiration Actions can be used on versioned objects and can help to greatly optimise costs.
+    However, these can get complicated will require planning before implementation.
+
+    For Transitions we can visualise the hierarchy of tiers:
+
+        i.   S3 Standard
+        ii.  S3 Standard-IA
+        iii. S3 Intelligent-Tiering
+        iv.  S3 One Zone-IA
+        v.   S3 Glacier - Instant Retrieval
+        vi.  S3 Glacier - Flexible Retrieval
+        vii. S3 Glacier Deep Archive
+
+    Every tier can transition an object to all tiers below them with the EXCEPTION of S3 One Zone-IA which can't
+    transition an object to S3 Glacier - Instant Retrieval.
+
+    Note: Smaller objects can cost more, remember to consider the requirements for cost efficacy for the Glacier
+    classes.
+    Note: For thee S3 Standard-IA and S3 One Zone-IA there's a minimum of 30 days, therefore this will impede any
+    transitions on objects that're subject to this penalty.
+    Note: A single rule cannot transition to Standard-IA or One Zone-IA and THEN to any oif the Glacier classes 
+    within 30 days, i.e. there's a minimum storage cost when transitioning an object from S3 Standard to S3 
+    Standard-IA and S3 One Zone-IA.
+
+## S3 Replication
+
+    S3 replication is where you replicate objects from a Source Bucket to a Destination Bucket. There are two
+    distinct types of S3 Replication: Same-Region Replication (SRR) and Cross-Region Replication (CRR). The process
+    for the two are the same and both support same account Bucket Replication or different account Bucket
+    Replication.
+
+    For S3 Replication to work, the following needs to be true:
+
+        i.   A replication configuration must be applied to the Source Bucket.
+        ii.  Part of the replication configuration is a required IAM Role to use to allow the S3 process to assume
+             it, which is defined in its trust policy. The roles permission policy gives it the ability top read 
+             from the Source Bucket and Replicate to the Destination Bucket.
+        iii. When replication happens within the same AWS Account, both Buckets trust that same AWS Account and IAM
+             Role. However, when the replication is happening between two different accounts extra permissions are 
+             needed as the Destination Account does not trust the Source Account. There you are required to
+             configure a bucket policy (which is a resource policy) to define that a role from the source account is
+             allowed to replicate to that bucket.
+
+    Things to note about S3 Replication:
+
+        i.    You can replicate all objects or a subset of objects. A subset can be defined by a filter that can 
+              create subsets based on prefixes and/or tags.
+        ii.   You can define which storage class to replicate to, the default is to use the same class.
+        iii.  You can define ownership of the destination object, by default it is the source account. This is an
+              important consideration when replicating between different accounts, as you could be left with a
+              situation where the destination account cannot read the object due to a lack of permissions.
+        iv.   There is a Replication Time Control (RTC) which is a 15 minute replication SLA available, outside of
+              this, it's a best efforts process.
+        v.    By default S3 Replication is not retroactive.
+        vi.   Versioning must be ON.
+        vii.  You can configure batch replication to replicate existing objects.
+        viii. It's a one-way replication process, from Source to Destination, by default. Bi-directional is
+              something you need to additionally configure.
+        ix.   S3 Replication can handle unencrypted, SSE-C, SSE-S3 and SSE-KMS. SEE-KMS will require extra
+              configuration due to the involvement of KMS.
+        x.    The Source Bucket owner will always need permissions to the objects to be replicated.
+        xi.   No system events will be replicated.
+        xii.  Objects in Glacier or Glacier Deep Archive can not be replicated.
+        xiii. Deleted markers are replicated, however it can be configured (DeleteMarkerReplication).
+
+    Use Cases:
+
+        SRR: Log Aggregation, Prod and Test Sync, Resilience with strict data sovereignty. 
+        CRR: Global Resilience, Latency Reduction .
+
+    Note: AWS has also added Multi-destination replication.
+
+
 [awsLocateSecurityCredentials]: ./images/aws-security-credentials.png
 [awsAddMFA]: ./images/aws-add-mfa.png
 [awsDeviceNameAndMedium]: ./images/aws-device-name-medium.png
