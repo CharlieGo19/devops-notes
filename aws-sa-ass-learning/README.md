@@ -1150,7 +1150,8 @@
             |                        |                  |                     | Role Separation     |
             +------------------------+------------------+---------------------+---------------------+
         
-    Note: all data, even ciphertext generated client side, ia usually encrypted in transit, i.e. from client to AWS. 
+    Note: all data, even ciphertext generated client side, is encrypted in transit when using HTTPS/TLS, i.e. from 
+          client to AWS. 
 
 ## S3 Bucket Keys:
 
@@ -1484,12 +1485,67 @@
 ## S3 Select & Glacier Select:
 
     S3 can store in theory an infinite amount of 5TB objects, however retrieving a 5TB object takes time and uses a
-    full 5TB of network resources. For CSV, JSON, Parquet and BZIP2 compression for CSV and JSON S3 Select and
+    full 5TB of network resources. For CSV, JSON, Parquet and BZIP2 compression for CSV and JSON, S3 Select and
     Glacier Select lets you use SQL-like statements to query the object and retrieve only the data you need. This
     filtering happens on S3, therefore making it cheaper and quicker.
 
+## S3 Event Notifications
 
-    
+    S3 Event Notifications are generated when events occur in a bucket and can be delivered to SNS, SQS and Lambda
+    Functions. The S3 events that can trigger Event Notifications are:
+
+        i.   Object Created (Put, Post, Copy, CompleteMultiPartUpload).
+        ii.  Object Delete (*(any delete operation), Delete, DeleteMarkerCreated).
+        iii. Object Restore (Post(initiated), Completed).
+        iv.  Replication (OperationMissedThreshold, OperationReplicatedAfterThreshold, OperationNotTracked, 
+             OperationFailedReplication).
+
+    It's worth noting that S3 Event Notifications is a mature feature, and an alternative is Event Bridge and
+    supports more types of events and more services.
+
+## S3 Access Logs
+
+    S3 Access Logs require two buckets, a source and target, the source bucket is the bucket that we will monitor
+    the access of and the target bucket will be where the logs are stored. Access Logging can be enabled via the
+    console UI or via the PUT Bucking logging via the CLI or API. The logging is managed by the S3 Log Delivery
+    Group which reads the configuration you set on the source bucket; which means the S3 Log Delivery Group will
+    need write access on the target bucket. 
+
+    Log Files consist of Log Records which are newline-delimited and attributes attributes of the record are space-
+    delimited. The logs can be differentiated with a time prefix which can be configured on the source bucket.
+
+    Uses can include security and access audits, as well as insights into access patterns or help understand S3
+    usage costs. 
+
+    Note: S3 Access Logs is a best efforts process, accesses to the source bucket are usually logged in the target
+          bucket within a few hours.
+
+## S3 Object Lock
+
+    Object Lock can only be enabled on new and existing buckets, object lock requires versioning to be enabled and
+    it is not retroactive unless specified. It follows a Write-Once-Read-Many (WORM) design pattern, i.e. No Delete
+    and No Overwrite. It's worth noting that individual versions are locked. There are two types of locks: 
+
+        Retention:
+
+            i.   Retention is specified in Days and Years, i.e. a retention period.
+            ii.  The Retention Lock can be set to COMPLIANCE, this CAN NOT be adjusted, deleted or overwritten. This
+                 is a permanent action until the retention period expires. Even the ROOT USER CAN NOT change the
+                 settings of the object once a Retention Lock has been applied.
+            iii. The Retention Lock can be set to GOVERNANCE, special permissions can be granted allowing the lock
+                 settings to be adjusted using the s3:BypassGovernanceRetention using the header
+                 x-amz-bypass-governance-retention:true (this is the console default). This Lock can be used for
+                 testing before committing to COMPLIANCE, or used for less strict requirements.
+
+        Legal Hold:
+
+            i.   Legal Hold you set an objects version to ON or OFF, there is no retention period.
+            ii.  Deletes and Changes are prohibited unless the Legal Hold is set to OFF.
+            iii. s3:PutObjectLegalHold is required to set the status of the Legal Hold.
+            iv.  It's useful to prevent accidental deletion of critical object versions.
+
+    Both, either/or, or none can be enabled and a bucket can have default Object Lock settings.
+
 [awsLocateSecurityCredentials]: ./images/aws-security-credentials.png
 [awsAddMFA]: ./images/aws-add-mfa.png
 [awsDeviceNameAndMedium]: ./images/aws-device-name-medium.png

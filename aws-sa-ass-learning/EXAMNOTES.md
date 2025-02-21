@@ -46,3 +46,16 @@
     ii.  Filtering on client side doesn't reduce i.
     iii. S3/Glacier gives SQL-like statements to filter S3 side.
     iv   Supported formats: CSV, JSON, Parquet, BZIP2 for CSV and JSON.
+
+# S3 Event Notifications
+
+    i.  Object Restore could be used to notify customer/staff when an item restoration has started/ended Glacier
+        Storage or Deep Archive.
+    ii. Can track replication events to make sure SLAs are met, or replications are successful (or not).
+
+# S3 Object Lock
+
+    i.   s3L:PutObjectLegalHold=OFF -> Normal permissions apply.
+    ii.  s3:ByPassGovernanceRetention requires x-amz-bypass-governance-retention:true header.
+    iii. Compliance: Object version can't be deleted or updated. Retention period can not be altered. Compliance
+         mode can not be altered by ANY user, even by the ACCOUNT ROOT USER.
