@@ -27,9 +27,9 @@ data "aws_iam_policy_document" "destination_allow_anonymous_principle_access_doc
     resources = [ "${aws_s3_bucket.s3_bucket_replication_destination.arn}/*" ]
   }
   statement {
-    sid = "AllowGetVersioning"
-    effect = "Allow"
-    actions = [ "s3:GetBucketVersioning" ]
+    sid       = "AllowGetVersioning"
+    effect    = "Allow"
+    actions   = [ "s3:GetBucketVersioning" ]
     principals {
       type = "AWS"
       identifiers = [ 
