@@ -1459,7 +1459,7 @@
     Use Cases:
 
         SRR: Log Aggregation, Prod and Test Sync, Resilience with strict data sovereignty. 
-        CRR: Global Resilience, Latency Reduction .
+        CRR: Global Resilience, Latency Reduction.
 
     Note: AWS has also added Multi-destination replication.
 
