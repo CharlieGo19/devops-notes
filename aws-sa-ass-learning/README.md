@@ -1463,7 +1463,33 @@
 
     Note: AWS has also added Multi-destination replication.
 
+## S3 Presigned URLs:
 
+    S3 PresignedURLs are a feature that allows principles who do not have sufficient permissions to an S3 Bucket 
+    Object to have time limited access. The access granted is defined by the signing identities GET and PUT
+    permissions, i.e. if the signing identity has GET permissions, the PresignedURL will be encoded with GET
+    permissions. 
+
+    S3 PresignedURLs fit use cases where you offload media to S3 as part of serverless architecture, where you don't
+    want to use application servers to broker access to a private S3 Bucket. Or use cases where you want to deliver
+    large media to a target audience for a limited amount of time.
+
+    There are some quirks to note about S3 PresignedURLs:
+
+        i.   You can create a PresignedURL for an object you have no access to.
+        ii.  Access denied could indicate the generating identity never had the access, or has since had it revoked.
+        iii. Try not to use roles to generate PresignedURLs. The URL will stop working when the temporary 
+             credentials expire.
+
+## S3 Select & Glacier Select:
+
+    S3 can store in theory an infinite amount of 5TB objects, however retrieving a 5TB object takes time and uses a
+    full 5TB of network resources. For CSV, JSON, Parquet and BZIP2 compression for CSV and JSON S3 Select and
+    Glacier Select lets you use SQL-like statements to query the object and retrieve only the data you need. This
+    filtering happens on S3, therefore making it cheaper and quicker.
+
+
+    
 [awsLocateSecurityCredentials]: ./images/aws-security-credentials.png
 [awsAddMFA]: ./images/aws-add-mfa.png
 [awsDeviceNameAndMedium]: ./images/aws-device-name-medium.png
