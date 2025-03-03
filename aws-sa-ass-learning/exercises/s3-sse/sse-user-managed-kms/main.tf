@@ -8,6 +8,10 @@ terraform {
   required_version = ">= 1.2.0"
 }
 
+/*********************************************************************************
+* Before running this exercise, please read: https://aws.amazon.com/kms/pricing/ *
+*********************************************************************************/
+
 provider "aws" {
   region = "us-east-1"
 }
