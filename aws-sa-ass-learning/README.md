@@ -1522,9 +1522,9 @@
 
 ## S3 Object Lock
 
-    Object Lock can only be enabled on new and existing buckets, object lock requires versioning to be enabled and
-    it is not retroactive unless specified. It follows a Write-Once-Read-Many (WORM) design pattern, i.e. No Delete
-    and No Overwrite. It's worth noting that individual versions are locked. There are two types of locks: 
+    Object Locks can be enabled on new and existing buckets, object lock requires versioning to be enabled and it is
+    not retroactive unless specified. It follows a Write-Once-Read-Many (WORM) design pattern, i.e. No Delete and No
+    Overwrite. It's worth noting that individual versions are locked. There are two types of locks: 
 
         Retention:
 
@@ -1546,6 +1546,30 @@
 
     Both, either/or, or none can be enabled and a bucket can have default Object Lock settings.
 
+## S3 Multi-Region Access Point
+
+    S3 Access Points facilitate the management of S3 Bucket and Object access. Having a single S3 Bucket with a
+    large number of objects with a significant number of principles with different access requirements can get 
+    complicated fast, especially when the access is controlled via a single bucket policy. Access point policies can
+    control permissions for access via the access point, which gives it functional equivalence to a bucket policy.
+    Each Access Point can restrict principles to certain prefix(s)k, tags or actions. Also, each Access Point has
+    its own DNS address for network access and can restrict the source of the traffic, i.e. from a VPC or the
+    internet.
+
+    S3 Buckets under a Multi-Region Access Pointer can be designated active or passive, where passive s3 buckets are
+    used for failover.
+
+![AWS Access Points Flow][awsAccessPointsFlow]
+
+    Access Points can be created via the AWS UI or using CLI/API, for the exam it's important to remember the 
+    following command:
+
+        aws s3control create-access-point --name $name --account-id $accountId --bucket $uniqueBucketName
+    
+    Note: The S3 Bucket must have matching permissions to the Access Point or delegate the permissions, i.e. you
+          open access to the S3 Bucket via the Access Point, then on the Access Point you define more stringent
+          permissions.
+
 [awsLocateSecurityCredentials]: ./images/aws-security-credentials.png
 [awsAddMFA]: ./images/aws-add-mfa.png
 [awsDeviceNameAndMedium]: ./images/aws-device-name-medium.png
@@ -1564,3 +1588,4 @@
 [awsPlatformsSharedResponsibilityModel]: ./images/aws-shared-responsibility-model.png
 [awsControlTowerArchitecture]: ./images/aws-control-tower-architecture.png
 [awsACLPermissions]: ./images/aws-acl-permissions.png
+[awsAccessPointsFlow]: ./images/aws-access-point-flow.png

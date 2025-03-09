@@ -59,3 +59,7 @@
     ii.  s3:ByPassGovernanceRetention requires x-amz-bypass-governance-retention:true header.
     iii. Compliance: Object version can't be deleted or updated. Retention period can not be altered. Compliance
          mode can not be altered by ANY user, even by the ACCOUNT ROOT USER.
+
+# S3 Access Points
+
+    i. aws s3control create-access-point --name $name --account-id $ accountId --bucket $bucketName
