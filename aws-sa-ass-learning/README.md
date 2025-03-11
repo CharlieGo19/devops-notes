@@ -1570,6 +1570,82 @@
           open access to the S3 Bucket via the Access Point, then on the Access Point you define more stringent
           permissions.
 
+## VPC Sizing and Considerations
+
+    Designing a VPC requires a well thought out and highly detailed design, it must consider the now and must also
+    consider tomorrow to be robust enough for future business needs. Things to consider:
+
+        i.   What size should the VPC be, i.e. CIDR range.
+        ii.  Other networks you'll interact with, overlapping CIDRs will complicate communication. You should 
+             consider ranges other VPC's, Cloud Providers, On-Premises, Partners and Vendors use, and try to avoid
+             them.
+        iii. Consider the future, what might you need?
+        iv.  VPC Structure, tiers (i.e. web, app and db) and resiliency zones (AZs).
+
+    AWS CIDR Considerations:
+
+        i.   The default VPC uses 172.31.0.0/16 (172.31.0.0 -> 172.31.255.255)
+        ii.  Some AWS Services use 172.17.0.0/16 (172.17.0.0 -> 172.17.255.255)
+        iii. A VPC at a minimum /28 (16 IP Addresses) and a maximum /16 (65536 IP Addresses).
+        iv.  Avoid common ranges, i.e. 10.0, a lot of people use this as a default, and 10.1 because it's a natural
+             increment of 10.0 for people to use.
+        v.   Reserve 2+ ranges per region being used per account. For example, if we're going to use 2 EU Regions,
+             2 US and an Australian Region across 3 accounts you would need 5 * 2 * 3 = 30 ranges.
+
+    When considering your subnet IP Addressing there are some reserved addresses, five in total:
+
+        i.   The network address: x.y.z.0 (i.e. 10.132.12.0, 19.148.12.0...).
+        ii.  Network+1 for VPC Router: x.y.z.1 (i.e. 10.132.12.1, 19.148.12.1...).
+        iii. Network+2 for DNS: x.y.z.2 (i.e. 10.132.12.2, 19.148.12.2...).
+        iv.  Network+3 for future feature: x.y.z.3 (i.e. 10.132.12.3, 19.148.12.3...).
+        v.   The broadcast address: x.y.z.255 (i.e. 0.132.12.255, 19.148.12.255...).
+
+![AWS VPC Sizing Chart][awsVPCSizing]
+
+    Considering the above AWS VPC Sizing Chart we can workout the respective details:
+
+        i.   Netmask: /24 -
+             Each part of an ip address is a byte (8 bits), so a netmask of 24 is 3 bytes, therefore reserves the 
+             first three parts of the IP Address for the network, i.e. x.x.x.255, leaving you with 256 (including 0)
+             available total IPs.
+        ii.  Subnet Size:
+             Depending on the number of VPCs/Subnets we require, we will need to reserve more of the available IP 
+             addresses for the network part, for example, if we require 10 VPCs/Subnets we would need 4 extra bits
+             to from the host part to represent them (2x2x2x2 = 16, i.e. we can't use 3 bits because 2x2x2=8, so not
+             enough to cover the 10 we need).
+        iii. Hosts/Subnet:
+             This is the (total number of IP Addresses)/(number of subnets) - 5 reserved addresses.
+        iv.  Subnets/VPC: The number of Subnets/VPCs as per your business requirement.
+        v.   Total IPs (usable):
+             (total number of IP addresses) - (number of Subnets/VPC)*(5 reserved addresses)
+
+        To demonstrate we will use the Extra Large from the AWS VPC Sizing Chart:
+
+        Netmask: /16 - 10.0.255.255
+        Subnet Size: /20 - 16+(2*2*2*2) [for the 16 subnets/vpcs required]
+        Hosts/Subnet: 2^16/16 - 5 = 4091
+        Subnets/VPC: 8
+        Total IPs (usable) 2^16 - 16 * 5 = 65465
+
+    When designing your VPC you should ask:
+
+        i.  How many subnets will you need?
+        ii. How many IPs total and how many per subnet?
+         
+        Main things to consider here, how many Availability Zones will you utilise for resilience, and how many
+        tiers (i.e. application, db, etc.) do you need? 
+
+        If we want to utilise high availability, we should use three availability zones, as this will work with 
+        most regions, plus a spare for future proofing. Therefore we would need 4 subnets, so if we started with
+        a /18, it would become a /20 in each subnet. 
+            
+        Now let's assume our application requires 3 tiers: web, app and db, we should add another tier again for
+        future use for a total of 4 tiers. This would result in the requirement of 16 subnets i.e. 4 tiers
+        across 4 availability zones, 4*4=16. Again, if we started with a /18, we would not have /22 in each of
+        the subnets.
+
+    Note: for CIDR ranges read https://docs.aws.amazon.com/vpc/latest/userguide/vpc-cidr-blocks.html
+
 [awsLocateSecurityCredentials]: ./images/aws-security-credentials.png
 [awsAddMFA]: ./images/aws-add-mfa.png
 [awsDeviceNameAndMedium]: ./images/aws-device-name-medium.png
@@ -1589,3 +1665,4 @@
 [awsControlTowerArchitecture]: ./images/aws-control-tower-architecture.png
 [awsACLPermissions]: ./images/aws-acl-permissions.png
 [awsAccessPointsFlow]: ./images/aws-access-point-flow.png
+[awsVPCSizing]: ./images/aws-vpc-sizing.png
