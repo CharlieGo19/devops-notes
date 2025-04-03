@@ -63,3 +63,12 @@
 # S3 Access Points
 
     i. aws s3control create-access-point --name $name --account-id $ accountId --bucket $bucketName
+
+# Custom VPCs
+
+    If troubleshooting VPC DNS issues, check:
+
+        i.  enableDnsHostHostNames: this determines whether instances with public IP Addresses are given public 
+            hostnames, therefore, if this is set to true, instances will get given public hostnames. 
+        ii. enableDnsSupport: enabled DNS resolution, if enabled, instances within the VPC can use the DNS IP
+            Address.

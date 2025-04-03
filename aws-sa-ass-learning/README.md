@@ -1644,7 +1644,41 @@
         across 4 availability zones, 4*4=16. Again, if we started with a /18, we would not have /22 in each of
         the subnets.
 
+    Custom VPC Architecture Notes:
+
+        i.    VPCs are regionally isolated and regionally resilient.
+        ii.   It allows for multiple isolated networks within a Region.
+        iii.  No traffic is allowed in or out of the network without explicit configuration.
+        iv.   Anything that fails within a custom VPC is isolated to everything within that VPC or anything
+              connected to it.
+        v.    The have flexible configuration (as opposed to the default VPC), which can be simple, multi-tier or
+              part of a hybrid network.
+        vi.   They can be hosted on as a default tenancy (on shared hardware) or as a dedicated tenancy (dedicated
+              hardware).
+        v.    Custom VPCs can use IPv4 and Public IPs. It's main method of communication is IPv4 Private CIDR 
+              blocks. Public IPs are used when you want to make resources public. Each VPC is allocated 1 primary 
+              private CIDR block which has two main restrictions, at a minimum is must be /28 and a maximum /16 
+              prefixes.
+        vi.   After creation you can create secondary IPv4 CIDR blocks, by default there's a max of 5 which can be 
+              increased via support ticket.
+        vii.  A VPC can optionally be assigned a single IPv6 /56 CIDR block. The block is either assigned by AWS or 
+              you can use a block that you own. All IPv6 addresses assigned by AWS are all publicly routable as IPv6
+              doesn't have the concept of public and private IP Addresses. But you still need to explicitly allow
+              connectivity.
+        viii. DNS in a VPC is provided by R53, it's available on the VPCs Base IP + 2 Address (if the base IP
+              Address is 10.10.0.0, the DNS IP Address would be 10.10.0.2).
+        ix.   Two options critical for how a DNS functions within a VPC:`
+
+              - enableDnsHostHostNames: this determines whether instances with public IP Addresses are given 
+                public hostnames, therefore, if this is set to true, instances will get given public hostnames. 
+              - enableDnsSupport: enabled DNS resolution, if enabled, instances within the VPC can use the DNS
+                IP Address.
+            
     Note: for CIDR ranges read https://docs.aws.amazon.com/vpc/latest/userguide/vpc-cidr-blocks.html
+    Note: Help for visualising CIDR ranges https://cidr.xyz
+    Note: Any resource provisioned as part of the VPC on dedicated hardware, must also be on dedicated hardware.
+          This can get expensive.
+    Note: Because IPv6 is still being implemented, it has a subset of features that IPv4 has, but is catching up.
 
 [awsLocateSecurityCredentials]: ./images/aws-security-credentials.png
 [awsAddMFA]: ./images/aws-add-mfa.png
